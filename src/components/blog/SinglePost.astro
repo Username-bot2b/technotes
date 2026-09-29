@@ -1,0 +1,86 @@
+---
+import Image from '~/components/common/Image.astro';
+import PostTags from '~/components/blog/Tags.astro';
+import SocialShare from '~/components/common/SocialShare.astro';
+
+import { getPermalink } from '~/utils/permalinks';
+import { getFormattedDate } from '~/utils/utils';
+
+import type { Post } from '~/types';
+
+export interface Props {
+  post: Post;
+  url: string | URL;
+}
+
+const { post, url } = Astro.props;
+const dateLabel = getFormattedDate(post.publishDate);
+---
+
+<section class="cl-page">
+  <div class="cl-container">
+    <article>
+      <header class="mb-4">
+        <p class="cl-list-item__meta mb-2">
+          🕐 <time datetime={String(post.publishDate)}>{dateLabel}</time>
+          {
+            post.author && (
+              <>
+                {' '}
+                · 👤 <span>{post.author.replaceAll('-', ' ')}</span>
+              </>
+            )
+          }
+          {
+            post.category && (
+              <>
+                {' '}
+                ·{' '}
+                <a href={getPermalink(post.category.slug, 'category')}>{post.category.title}</a>
+              </>
+            )
+          }
+          {
+            post.readingTime && (
+              <>
+                {' '}
+                · {post.readingTime} min read
+              </>
+            )
+          }
+        </p>
+
+        <h1 class="cl-h1">{post.title}</h1>
+
+        {post.excerpt && <p class="cl-lede mb-3">{post.excerpt}</p>}
+
+        {
+          post.image ? (
+            <div class="cl-hero-image">
+              <Image
+                src={post.image}
+                class="w-full max-h-[420px] object-cover block"
+                widths={[400, 900]}
+                sizes="(max-width: 900px) 400px, 900px"
+                alt={post?.excerpt || post.title}
+                width={900}
+                height={506}
+                loading="eager"
+                decoding="async"
+              />
+            </div>
+          ) : null
+        }
+      </header>
+
+      <div class="cl-prose">
+        <slot />
+      </div>
+
+      <div class="cl-post-footer flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+        <PostTags tags={post.tags} title="Tags" />
+        <SocialShare url={url} text={post.title} />
+      </div>
+    </article>
+  </div>
+</section>

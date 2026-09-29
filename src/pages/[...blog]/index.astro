@@ -1,0 +1,90 @@
+---
+import type { InferGetStaticPropsType, GetStaticPaths } from 'astro';
+
+import merge from 'lodash.merge';
+import type { ImageMetadata } from 'astro';
+import Giscus from '@giscus/vue';
+import type { AvailableLanguage, InputPosition, Mapping } from '@giscus/vue';
+import Layout from '~/layouts/PageLayout.astro';
+import SinglePost from '~/components/blog/SinglePost.astro';
+import ToBlogLink from '~/components/blog/ToBlogLink.astro';
+import Section from '~/components/ui/Section.astro';
+
+import { getCanonical, getPermalink } from '~/utils/permalinks';
+import { getStaticPathsBlogPost, blogPostRobots, blogComments, isBlogCommentsEnabled } from '~/utils/blog';
+import { findImage } from '~/utils/images';
+import type { MetaData } from '~/types';
+import RelatedPosts from '~/components/blog/RelatedPosts.astro';
+import { SITE } from '~/config';
+
+export const prerender = true;
+
+export const getStaticPaths = (async () => {
+  return await getStaticPathsBlogPost();
+}) satisfies GetStaticPaths;
+
+type Props = InferGetStaticPropsType<typeof getStaticPaths>;
+
+const { post } = Astro.props as Props;
+
+const url = getCanonical(getPermalink(post.permalink, 'post'));
+const image = (await findImage(post.image)) as ImageMetadata | string | undefined;
+const giscusThemeOrigin = import.meta.env.DEV
+  ? Astro.url.origin
+  : SITE?.site || Astro.site?.href || Astro.url.origin;
+const giscusTheme = new URL('/giscus-brutal.css', giscusThemeOrigin).href;
+
+const metadata = merge(
+  {
+    title: post.title,
+    description: post.excerpt,
+    robots: {
+      index: blogPostRobots?.index,
+      follow: blogPostRobots?.follow,
+    },
+    openGraph: {
+      type: 'article',
+      ...(image
+        ? { images: [{ url: image, width: (image as ImageMetadata)?.width, height: (image as ImageMetadata)?.height }] }
+        : {}),
+    },
+  },
+  { ...(post?.metadata ? { ...post.metadata, canonical: post.metadata?.canonical || url } : {}) }
+) as MetaData;
+---
+
+<Layout metadata={metadata}>
+  <SinglePost post={{ ...post, image: image }} url={url}>
+    {post.Content ? <post.Content /> : <Fragment set:html={post.content || ''} />}
+  </SinglePost>
+
+  {
+    isBlogCommentsEnabled && (
+      <div class="cl-page">
+        <div class="cl-container">
+          <Section title="Comments" emoji="💬">
+            <Giscus
+              client:load
+              id="comments"
+              loading="lazy"
+              repo={blogComments.repo as `${string}/${string}`}
+              repoId={blogComments.repoId}
+              category={blogComments.category}
+              categoryId={blogComments.categoryId}
+              mapping={blogComments.mapping as Mapping}
+              strict={blogComments.strict ? '1' : '0'}
+              reactionsEnabled={blogComments.reactionsEnabled ? '1' : '0'}
+              emitMetadata={blogComments.emitMetadata ? '1' : '0'}
+              inputPosition={blogComments.inputPosition as InputPosition}
+              theme={giscusTheme}
+              lang={blogComments.lang as AvailableLanguage}
+            />
+          </Section>
+        </div>
+      </div>
+    )
+  }
+
+  <ToBlogLink />
+  <RelatedPosts post={post} />
+</Layout>

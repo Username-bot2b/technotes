@@ -1,0 +1,36 @@
+---
+import { getPermalink } from '~/utils/permalinks';
+
+import { APP_BLOG } from '~/config';
+import type { Post } from '~/types';
+
+export interface Props {
+  tags: Post['tags'];
+  class?: string;
+  title?: string | undefined;
+  isCategory?: boolean;
+}
+
+const { tags, class: className = '', title = undefined, isCategory = false } = Astro.props;
+---
+
+{
+  tags && Array.isArray(tags) && tags.length > 0 && (
+    <div class:list={['flex flex-wrap items-center gap-2', className]}>
+      {title !== undefined && <span class="cl-small">{title}:</span>}
+      <ul class="flex flex-wrap gap-1 m-0 p-0 list-none">
+        {tags.map((tag) => (
+          <li>
+            {!APP_BLOG?.tag?.isEnabled ? (
+              <span class="cl-tag">{tag.title}</span>
+            ) : (
+              <a href={getPermalink(tag.slug, isCategory ? 'category' : 'tag')} class="cl-tag">
+                {tag.title}
+              </a>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}

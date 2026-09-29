@@ -1,0 +1,62 @@
+---
+export interface Props {
+  text: string;
+  url: string | URL;
+  class?: string;
+}
+
+const { text, url, class: className = '' } = Astro.props;
+---
+
+<div class:list={['cl-share flex flex-wrap items-center gap-1', className]}>
+  <span class="cl-small mr-1">Share:</span>
+  <button
+    type="button"
+    class="cl-share__btn"
+    title="Share on X"
+    data-aw-social-share="twitter"
+    data-aw-url={url}
+    data-aw-text={text}
+  >
+    X
+  </button>
+  <button
+    type="button"
+    class="cl-share__btn"
+    title="Share on Facebook"
+    data-aw-social-share="facebook"
+    data-aw-url={url}
+  >
+    fb
+  </button>
+  <button
+    type="button"
+    class="cl-share__btn"
+    title="Share on LinkedIn"
+    data-aw-social-share="linkedin"
+    data-aw-url={url}
+    data-aw-text={text}
+  >
+    in
+  </button>
+  <button
+    type="button"
+    class="cl-share__btn"
+    title="Share on WhatsApp"
+    data-aw-social-share="whatsapp"
+    data-aw-url={url}
+    data-aw-text={text}
+  >
+    wa
+  </button>
+  <button
+    type="button"
+    class="cl-share__btn"
+    title="Share by email"
+    data-aw-social-share="mail"
+    data-aw-url={url}
+    data-aw-text={text}
+  >
+    @
+  </button>
+</div>

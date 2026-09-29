@@ -1,0 +1,21 @@
+---
+import Layout from '~/layouts/PageLayout.astro';
+import { getHomePermalink } from '~/utils/permalinks';
+
+const title = `Error 404`;
+---
+
+<Layout metadata={{ title }}>
+  <div class="cl-page">
+    <div class="cl-container">
+      <h1 class="cl-h1">404</h1>
+      <p class="cl-lede">Sorry, we couldn't find this page.</p>
+      <p class="cl-text">
+        But don't worry, you can find plenty of other things on our homepage.
+      </p>
+      <p class="m-0">
+        <a href={getHomePermalink()}>&laquo; Back to homepage</a>
+      </p>
+    </div>
+  </div>
+</Layout>

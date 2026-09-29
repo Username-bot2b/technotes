@@ -1,0 +1,37 @@
+---
+import { SITE, THEME } from '~/config';
+import { getPermalink, getBlogPermalink, getAsset } from '~/utils/permalinks';
+
+export interface Props {
+  theme?: string;
+  links?: unknown;
+  secondaryLinks?: unknown;
+  socialLinks?: unknown;
+  footNote?: string;
+}
+
+const currentYear = new Date().getFullYear();
+const siteName = SITE?.name || 'technotes';
+const themeName = THEME?.name || 'PaperPlain';
+---
+
+<footer class="cl-footer">
+  <div class="cl-container">
+    <p class="m-0">
+      © {currentYear} {siteName}
+      <span class="cl-footer__sep">·</span>
+      <a href={getPermalink('/about')}>About</a>
+      <span class="cl-footer__sep">·</span>
+      <a href={getBlogPermalink()}>Blog</a>
+      <span class="cl-footer__sep">·</span>
+      <a href={getPermalink('/contact')}>Contact</a>
+      <span class="cl-footer__sep">·</span>
+      <a href={getPermalink('/privacy')}>Privacy</a>
+      <span class="cl-footer__sep">·</span>
+      <a href={getAsset('/rss.xml')}>RSS</a>
+    </p>
+    <p class="cl-footer__theme m-0">
+      {themeName} theme
+    </p>
+  </div>
+</footer>

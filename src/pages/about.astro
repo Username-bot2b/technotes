@@ -1,0 +1,66 @@
+---
+import Layout from '~/layouts/PageLayout.astro';
+import Section from '~/components/ui/Section.astro';
+import { getPermalink } from '~/utils/permalinks';
+
+const metadata = {
+  title: 'About',
+};
+
+const sections = [
+  { id: 'overview', label: 'Overview', emoji: '👤' },
+  { id: 'currently', label: 'Currently', emoji: '📌' },
+  { id: 'elsewhere', label: 'Elsewhere', emoji: '🔗' },
+  { id: 'more', label: 'More', emoji: '➕' },
+];
+---
+
+<Layout metadata={metadata}>
+  <div class="cl-page">
+    <div class="cl-container">
+      <Section title="About" emoji="👤">
+        <ul class="cl-anchor-nav">
+          {
+            sections.map((section, index) => (
+              <li>
+                {index > 0 && <span class="cl-nav-sep">|</span>}
+                <a href={`#${section.id}`}>{section.label}</a>
+              </li>
+            ))
+          }
+        </ul>
+      </Section>
+
+      <Section title="Overview" emoji="👤" id="overview">
+        <h1 class="cl-h1">About me</h1>
+        <p class="cl-lede m-0">
+          This is a personal website. Replace this text with a short introduction — who you are, what you work on,
+          and what visitors can expect to find here.
+        </p>
+      </Section>
+
+      <Section title="Currently" emoji="📌" id="currently">
+        <p class="cl-text m-0">
+          Writing, building small tools, and tinkering with retro-inspired interfaces.
+        </p>
+      </Section>
+
+      <Section title="Elsewhere" emoji="🔗" id="elsewhere">
+        <p class="cl-text m-0">
+          Add links to GitHub, social profiles, or a resume when you're ready.
+        </p>
+      </Section>
+
+      <Section title="More" emoji="➕" id="more">
+        <p class="cl-text">
+          Browse the blog for notes and experiments, or send a message if you want to get in touch.
+        </p>
+        <p class="m-0">
+          <a href={getPermalink('/contact')}>Get in touch</a>
+          <span class="cl-nav-sep">|</span>
+          <a href={getPermalink('/blog')}>Blog</a>
+        </p>
+      </Section>
+    </div>
+  </div>
+</Layout>

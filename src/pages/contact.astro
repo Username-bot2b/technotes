@@ -1,0 +1,88 @@
+---
+import Layout from '~/layouts/PageLayout.astro';
+import Section from '~/components/ui/Section.astro';
+
+const metadata = {
+  title: 'Contact',
+};
+---
+
+<Layout metadata={metadata}>
+  <div class="cl-page">
+    <div class="cl-container">
+      <Section title="Contact" emoji="✉️">
+        <h1 class="cl-h1">Let's Connect!</h1>
+        <p class="cl-lede">
+          For quicker answers, explore our FAQs section. You may find the solution you're looking for right there! If not, our support team is delighted to help you.
+        </p>
+
+        <fieldset class="cl-box">
+          <legend>Message</legend>
+          <form class="space-y-3">
+            <div>
+              <label for="name" class="cl-label">Name</label>
+              <input type="text" name="name" id="name" class="cl-field" />
+            </div>
+
+            <div>
+              <label for="email" class="cl-label">Email</label>
+              <input type="email" name="email" id="email" class="cl-field" />
+            </div>
+
+            <div>
+              <label for="message" class="cl-label">Message</label>
+              <textarea id="message" name="message" rows="4" class="cl-field"></textarea>
+            </div>
+
+            <div class="flex items-start gap-2">
+              <input id="disclaimer" name="disclaimer" type="checkbox" class="cl-checkbox mt-1" />
+              <label for="disclaimer" class="cl-small">
+                By submitting this contact form, you acknowledge and agree to the collection of your personal information.
+              </label>
+            </div>
+
+            <div>
+              <button type="submit" class="cl-btn">Send Message</button>
+            </div>
+
+            <p class="cl-small m-0">
+              Our support team typically responds within 24 business hours.
+            </p>
+          </form>
+        </fieldset>
+
+        <div class="grid md:grid-cols-2 gap-4">
+          <fieldset class="cl-box">
+            <legend>General Support</legend>
+            <p class="cl-text m-0">
+              Chat with us for inquiries related to account management, website navigation, payment issues, accessing purchased templates or general questions.
+            </p>
+          </fieldset>
+
+          <fieldset class="cl-box">
+            <legend>Contact Sales</legend>
+            <p class="cl-text m-0">
+              Chat with us for questions about purchases, customization options, licensing for commercial use, inquiries about specific template, etc.
+            </p>
+          </fieldset>
+
+          <fieldset class="cl-box">
+            <legend>Technical Support</legend>
+            <p class="cl-text m-0">
+              Chat with us when facing issues like template installation, problems editing difficulties, compatibility issues with software or download errors.
+            </p>
+          </fieldset>
+
+          <fieldset class="cl-box">
+            <legend>Direct</legend>
+            <div class="cl-text">
+              <p class="m-0 mb-2"><strong>Phone</strong><br />+1 (234) 567-890</p>
+              <p class="m-0 mb-2"><strong>Email</strong><br />contact@support.com</p>
+              <p class="m-0"><strong>Location</strong><br />1234 Lorem Ipsum St, 12345, Miami, EEUU</p>
+            </div>
+          </fieldset>
+        </div>
+      </Section>
+    </div>
+  </div>
+</Layout>

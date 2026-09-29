@@ -1,0 +1,30 @@
+---
+import { getPermalink } from '~/utils/permalinks';
+
+export interface Props {
+  prevUrl?: string;
+  nextUrl?: string;
+  prevText?: string;
+  nextText?: string;
+}
+
+const { prevUrl, nextUrl, prevText = '« newer', nextText = 'older »' } = Astro.props;
+---
+
+{
+  (prevUrl || nextUrl) && (
+    <div class="cl-pagination">
+      {prevUrl ? (
+        <a href={getPermalink(prevUrl)}>{prevText}</a>
+      ) : (
+        <span class="cl-small">{prevText}</span>
+      )}
+
+      {nextUrl ? (
+        <a href={getPermalink(nextUrl)}>{nextText}</a>
+      ) : (
+        <span class="cl-small">{nextText}</span>
+      )}
+    </div>
+  )
+}

@@ -1,0 +1,12 @@
+---
+import { I18N } from '~/config';
+import { getBlogPermalink } from '~/utils/permalinks';
+
+const { textDirection } = I18N;
+---
+
+<section class="cl-page">
+  <div class="cl-container">
+    <a href={getBlogPermalink()}>{textDirection === 'rtl' ? 'Back to Blog »' : '« Back to Blog'}</a>
+  </div>
+</section>

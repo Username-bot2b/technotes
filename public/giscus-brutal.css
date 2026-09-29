@@ -1,0 +1,105 @@
+/*!
+  Brutalist Giscus theme — matches Craigslist-inspired site palette
+*/
+main {
+  --color-prettylights-syntax-comment: #666666;
+  --color-prettylights-syntax-constant: #000000;
+  --color-prettylights-syntax-entity: #000000;
+  --color-prettylights-syntax-storage-modifier-import: #000000;
+  --color-prettylights-syntax-entity-tag: #000000;
+  --color-prettylights-syntax-keyword: #000000;
+  --color-prettylights-syntax-string: #000000;
+  --color-prettylights-syntax-variable: #666666;
+  --color-prettylights-syntax-brackethighlighter-unmatched: #cc0000;
+  --color-prettylights-syntax-invalid-illegal-text: #ffffff;
+  --color-prettylights-syntax-invalid-illegal-bg: #cc0000;
+  --color-prettylights-syntax-carriage-return-text: #ffffff;
+  --color-prettylights-syntax-carriage-return-bg: #000000;
+  --color-prettylights-syntax-string-regexp: #000000;
+  --color-prettylights-syntax-markup-list: #000000;
+  --color-prettylights-syntax-markup-heading: #000000;
+  --color-prettylights-syntax-markup-italic: #000000;
+  --color-prettylights-syntax-markup-bold: #000000;
+  --color-prettylights-syntax-markup-deleted-text: #cc0000;
+  --color-prettylights-syntax-markup-deleted-bg: #f0f0f0;
+  --color-prettylights-syntax-markup-inserted-text: #000000;
+  --color-prettylights-syntax-markup-inserted-bg: #f0f0f0;
+  --color-prettylights-syntax-markup-changed-text: #000000;
+  --color-prettylights-syntax-markup-changed-bg: #f0f0f0;
+  --color-prettylights-syntax-markup-ignored-text: #666666;
+  --color-prettylights-syntax-markup-ignored-bg: #f0f0f0;
+  --color-prettylights-syntax-meta-diff-range: #666666;
+  --color-prettylights-syntax-brackethighlighter-angle: #999999;
+  --color-prettylights-syntax-sublimelinter-gutter-mark: #999999;
+  --color-prettylights-syntax-constant-other-reference-link: #00e;
+
+  --color-btn-text: #000000;
+  --color-btn-bg: #ffffff;
+  --color-btn-border: #999999;
+  --color-btn-shadow: none;
+  --color-btn-inset-shadow: none;
+  --color-btn-hover-bg: #f0f0f0;
+  --color-btn-hover-border: #999999;
+  --color-btn-active-bg: #e0e0e0;
+  --color-btn-active-border: #999999;
+  --color-btn-selected-bg: #f0f0f0;
+
+  --color-btn-primary-text: #ffffff;
+  --color-btn-primary-bg: #000000;
+  --color-btn-primary-border: #000000;
+  --color-btn-primary-shadow: none;
+  --color-btn-primary-inset-shadow: none;
+  --color-btn-primary-hover-bg: #333333;
+  --color-btn-primary-hover-border: #000000;
+  --color-btn-primary-selected-bg: #000000;
+  --color-btn-primary-selected-shadow: none;
+  --color-btn-primary-disabled-text: #999999;
+  --color-btn-primary-disabled-bg: #cccccc;
+  --color-btn-primary-disabled-border: #999999;
+
+  --color-action-list-item-default-hover-bg: #f0f0f0;
+  --color-segmented-control-bg: #ffffff;
+  --color-segmented-control-button-bg: #ffffff;
+  --color-segmented-control-button-selected-border: #999999;
+
+  --color-fg-default: #000000;
+  --color-fg-muted: #666666;
+  --color-fg-subtle: #999999;
+
+  --color-canvas-default: #ffffff;
+  --color-canvas-overlay: #ffffff;
+  --color-canvas-inset: #f9f9f9;
+  --color-canvas-subtle: #f0f0f0;
+
+  --color-border-default: #999999;
+  --color-border-muted: #cccccc;
+  --color-neutral-muted: #cccccc66;
+
+  --color-accent-fg: #00e;
+  --color-accent-emphasis: #00e;
+  --color-accent-muted: #00e066;
+  --color-accent-subtle: #f0f0f0;
+
+  --color-success-fg: #000000;
+  --color-attention-fg: #000000;
+  --color-attention-muted: #66666666;
+  --color-attention-subtle: #f0f0f0;
+  --color-danger-fg: #cc0000;
+  --color-danger-muted: #cc000066;
+  --color-danger-subtle: #f0f0f0;
+
+  --color-primer-shadow-inset: none;
+  --color-scale-gray-1: #f0f0f0;
+  --color-scale-blue-1: #f0f0f0;
+
+  --color-social-reaction-bg-hover: var(--color-scale-gray-1);
+  --color-social-reaction-bg-reacted-hover: var(--color-scale-blue-1);
+}
+
+main .pagination-loader-container {
+  background-image: url(https://github.com/images/modules/pulls/progressive-disclosure-line.svg);
+}
+
+main .gsc-loading-image {
+  background-image: url(https://github.githubassets.com/images/mona-loading-default.gif);
+}

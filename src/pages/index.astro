@@ -1,0 +1,35 @@
+---
+import Layout from '~/layouts/PageLayout.astro';
+import Section from '~/components/ui/Section.astro';
+import BlogLatestPosts from '~/components/widgets/BlogLatestPosts.astro';
+import { getPermalink, getBlogPermalink } from '~/utils/permalinks';
+
+const metadata = {
+  title: 'Home',
+  ignoreTitleTemplate: true,
+};
+---
+
+<Layout metadata={metadata}>
+  <div class="cl-page">
+    <div class="cl-container">
+      <Section title="Home" emoji="🏠">
+        <h1 class="cl-h1">technotes</h1>
+        <p class="cl-lede">
+          编程学习笔记与技术文章。站点基于 Astro，UI 使用 PaperPlain 主题。
+        </p>
+        <p class="m-0">
+          <a href={getBlogPermalink()}>Read the blog</a>
+          <span class="cl-nav-sep">|</span>
+          <a href={getPermalink('/about')}>About me</a>
+          <span class="cl-nav-sep">|</span>
+          <a href={getPermalink('/contact')}>Contact</a>
+        </p>
+      </Section>
+
+      <Section title="Recent posts" emoji="📝">
+        <BlogLatestPosts count={5} linkText="View all posts" />
+      </Section>
+    </div>
+  </div>
+</Layout>

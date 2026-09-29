@@ -1,0 +1,85 @@
+---
+import type { ImageMetadata } from 'astro';
+import Image from '~/components/common/Image.astro';
+import { APP_BLOG } from '~/config';
+import type { Post } from '~/types';
+import { getPermalink } from '~/utils/permalinks';
+import { findImage } from '~/utils/images';
+import { getFormattedDate } from '~/utils/utils';
+
+export interface Props {
+  post: Post;
+}
+
+const { post } = Astro.props;
+const image = (await findImage(post.image)) as ImageMetadata | undefined;
+const link = APP_BLOG?.post?.isEnabled ? getPermalink(post.permalink, 'post') : '';
+---
+
+<article class="cl-list-item">
+  <div class="flex gap-3">
+    {
+      image && (
+        <div class="cl-list-item__thumb">
+          {link ? (
+            <a href={link}>
+              <Image
+                src={image}
+                class="w-20 h-20 object-cover block"
+                width={80}
+                height={80}
+                alt={post.title}
+                loading="lazy"
+                decoding="async"
+              />
+            </a>
+          ) : (
+            <Image
+              src={image}
+              class="w-20 h-20 object-cover block"
+              width={80}
+              height={80}
+              alt={post.title}
+              loading="lazy"
+              decoding="async"
+            />
+          )}
+        </div>
+      )
+    }
+    <div class="flex-1 min-w-0">
+      <header>
+        <div class="cl-list-item__meta">
+          <time datetime={String(post.publishDate)}>{getFormattedDate(post.publishDate)}</time>
+          {
+            post.author && (
+              <>
+                {' '}
+                · {post.author.replaceAll('-', ' ')}
+              </>
+            )
+          }
+          {
+            post.category && (
+              <>
+                {' '}
+                ·{' '}
+                <a href={getPermalink(post.category.slug, 'category')}>{post.category.title}</a>
+              </>
+            )
+          }
+        </div>
+        <h2 class="cl-h3">
+          {
+            link ? (
+              <a href={link}>{post.title}</a>
+            ) : (
+              post.title
+            )
+          }
+        </h2>
+      </header>
+      {post.excerpt && <p class="cl-small mb-0">{post.excerpt}</p>}
+    </div>
+  </div>
+</article>

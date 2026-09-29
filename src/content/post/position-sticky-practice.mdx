@@ -1,0 +1,242 @@
+---
+publishDate: 2026-09-20T08:00:00Z
+title: 'position: sticky 实践教程由浅入深'
+excerpt: 从最基础的 sticky 用法出发，逐步搭建接近真实项目的布局，并系统梳理现实项目里导致 sticky 失效的原因与排查思路。
+category: CSS
+tags:
+  - css
+  - sticky
+  - layout
+  - 前端
+author: technotes
+---
+
+import CodePlayground from '~/components/vue/CodePlayground.vue';
+import { stickyDemos } from '~/content/demos/sticky-demos';
+
+`position: sticky` 和 `fixed` 最容易被混在一起：滚动时都会「贴」在视口某处。但 **fixed 相对视口一直有效**；**sticky 只在某个祖先块（包含块 / 滚动范围）内有效**，块滚完就会跟着走。
+
+若只用「整页一条导航 + 长正文」做 demo，sticky 会长期吸在顶部，肉眼几乎和 fixed 一样——**看不出 sticky 何时「松手」**。这篇教程会先给能一眼看出差异的例子，再讲布局与踩坑。
+
+> **如何阅读示例**：每个示例左侧可改代码，右侧是独立预览区。请在**预览区内部滚动**，不要只滚整页——sticky 的行为取决于滚动容器。
+
+---
+
+## 1. sticky 与 fixed：何时「松手」
+
+| | `position: fixed` | `position: sticky` |
+| --- | --- | --- |
+| 参照系 | 视口（viewport） | 最近的 scroll container + 包含块边界 |
+| 滚出页面后 | 通常仍在原位置 | 随所属块一起滚出视口 |
+| 文档流 | 脱离文档流 | 仍占位，仅在阈值内「吸附」 |
+| 典型用途 | 全局悬浮按钮、固定顶栏 | 区块内标题、表头、消息头像 |
+
+下面示例里：**灰色 Fixed 角标**始终在右上角；**黄色 Sticky 条**在虚线框内吸顶，但滚过虚线框下边界后会跟着整块离开——这是 fixed 做不到的。
+
+<CodePlayground client:visible title="示例 1 · sticky 有边界，fixed 没有" files={stickyDemos.stickyVsFixed} />
+
+建议在编辑器里把 `.sticky-bar` 的 `position: sticky` 改成 `fixed` 再滚一遍：黄条会一直留在视口，虚线框约束消失——这就是线上「以为写了 sticky、表现像 fixed」或反过来排查时的对照实验。
+
+---
+
+## 2. 聊天长消息：头像在「本条消息内」sticky
+
+Slack、Discord、飞书等里，连续几条长消息左侧的作者头像，是理解 sticky **块状边界** 的经典场景：
+
+- 正在读某条长消息时，该条左侧头像吸在视口顶部（或顶栏下方）；
+- **整条消息**滚出视口后，这条头像一起离开；
+- 下一条消息的头像接替吸顶——同一时刻通常只有「当前消息」的头像在 stick。
+
+结构要点：**sticky 写在头像上，限制范围的是整条 `.message`（包含块）**，不是整页 feed。
+
+```html
+<article class="message">
+  <div class="avatar">A</div>
+  <div class="body">…长正文…</div>
+</article>
+```
+
+```css
+.message { display: flex; align-items: flex-start; }
+.avatar {
+  position: sticky;
+  top: 48px; /* 留出 feed 顶栏高度 */
+  align-self: flex-start;
+}
+```
+
+<CodePlayground client:visible title="示例 2 · 消息流头像接力 sticky" files={stickyDemos.chatAvatars} />
+
+注意 `.feed-header` 自己也用了 `sticky`，所以头像的 `top` 要留出顶栏高度，避免与顶栏重叠。若 sticky 失效，优先查 `.message` 的祖先是否有 `overflow: hidden` 或 `transform`（见第 7 节）。
+
+---
+
+## 3. 滚动容器：sticky 相对谁生效？
+
+规范里，sticky 的定位参照的是**最近的 scroll container（滚动容器）**。在多数简单页面里，滚动容器就是 viewport，所以 sticky 表现像「吸在窗口顶部」。
+
+一旦某个祖先设置了 `overflow: auto | scroll | hidden`，滚动上下文就可能被截断到该祖先内部：
+
+<CodePlayground client:visible title="示例 3 · 页面滚动 vs 容器内滚动" files={stickyDemos.scrollContainer} />
+
+- **Panel A**：无 `overflow`，在预览区里滚 → sticky 相对整个 iframe 视口。
+- **Panel B**：`.scroll-box { overflow: auto; height: 220px }` → sticky 只在这个盒子内吸顶，滚出盒子底部后会一起被带走。
+
+**现实项目映射**：Modal 内容区、表格容器、Split Pane、移动端 Tab 内容层，都可能是「局部滚动容器」。你要先确认用户实际在滚哪一层。
+
+---
+
+## 4. 多个 sticky 堆叠
+
+产品页常见「一级 Tab + 二级 Filter」两层吸顶。做法是依次设置不同的 `top`，并给上层更高 `z-index`：
+
+<CodePlayground client:visible title="示例 4 · 双层 sticky 堆叠" files={stickyDemos.stacking} />
+
+注意：**后出现的 sticky 元素会叠在先出现的上面**（在同一定位上下文内），所以二级栏的 `top` 要等于一级栏的高度，否则会互相遮挡。
+
+---
+
+## 5. 常见布局模式
+
+### 5.1 表格表头
+
+表格需要在外层包一层可滚动容器，把 `thead th` 设为 sticky：
+
+<CodePlayground client:visible title="示例 5 · 表头 sticky" files={stickyDemos.tableHead} />
+
+表头 sticky 的关键是：**滚动发生在 `.table-wrap` 上**，而不是 `<table>` 本身。
+
+---
+
+## 6. 接近真实项目的结构
+
+线上常见的是 **fixed 顶栏 + 多种 sticky 叠在同一条滚动链上**。示例 6 模拟一篇文档页：
+
+```
+页面
+├── 公告栏（fixed · 始终在最顶）
+├── 导航栏（普通文档流 · 滚走即消失）
+├── 内容区
+│   ├── 侧边栏（sticky · 菜单 · top = 公告高度）
+│   └── 主内容
+│       ├── Tabs 切换条（sticky · top = 公告高度）
+│       ├── 正文
+│       └── 文章标签 Footer（sticky · bottom: 0）
+└── 页面 Footer（普通文档流）
+```
+
+**和 fixed 公告协作的关键**：侧边栏、Tab 条若写 `top: 0`，滚动后会钻进公告栏下面。应使用 CSS 变量统一偏移，例如 `--announce-h: 40px`，sticky 元素写 `top: var(--announce-h)`；`body` 用 `padding-top: var(--announce-h)` 避免首屏内容被 fixed 公告挡住。
+
+文章底部的标签条用 `position: sticky; bottom: 0`，在长正文里会吸在**视口底边**，直到主内容区滚完——与页面最底部的 Footer（无定位）是两层不同含义的「脚」。
+
+<CodePlayground client:visible title="示例 6 · fixed 公告 + 多层 sticky 协作" files={stickyDemos.realLayout} />
+
+在这个结构里，只要某一层 layout 被加上 `overflow: auto` 且固定高度，sticky 的参照系就会立刻改变。上线前务必用**真实 DOM 层级**验证，并核对所有 sticky 的 `top`/`bottom` 是否已扣除 fixed 顶栏高度。
+
+---
+
+## 7. 现实项目里 sticky 失效的原因
+
+下面是最常见、也是线上最难查的几类问题。7.1–7.3 均可用示例内的 **「切换效果」** 对比失效与修复（若你曾看到「坏例子仍吸顶、修复反而不吸顶」，多半是旧版 demo 结构写错，而非浏览器突然改了标准）。
+
+### 7.1 祖先 `overflow: hidden / auto / scroll`（头号杀手）
+
+UI 框架、Layout 组件、防抖动 `overflow-x: hidden`、Carousel、Drawer 的 mask 层，都可能在不经意间创建截断 sticky 的滚动上下文。
+
+下面示例默认是**失效态**（`.page { overflow: hidden }`）。在预览区点击 **「切换效果」**，可对比移除 overflow 后 sticky 是否恢复；同时观察导航条背景色与说明文案的变化。
+
+<CodePlayground client:visible title="7.1 · overflow 失效 / 修复（可切换）" files={stickyDemos.overflowToggle} />
+
+**排查思路**：
+
+1. 从 sticky 元素向上遍历 DOM。
+2. 在 DevTools 里查看 Computed 的 `overflow-x` / `overflow-y`。
+3. 临时改成 `overflow: visible` 看 sticky 是否恢复——若恢复，说明问题在这条祖先链上。
+4. 不要无脑删 overflow：若原本是为了裁切圆角/阴影，可改为只在需要的子元素上裁切，或把 sticky 节点移到 overflow 容器之外。
+
+### 7.2 祖先存在 `transform` / `filter` / `perspective`
+
+这些属性会创建新的 **containing block**，并可能改变 sticky 与 scroll container 的对应关系。需要纠正一点：
+
+下面示例在**灰色滚动区**内滚动。默认在 sticky 与滚动区之间插入 `transform: translateX(40px)`，点击 **「切换效果」** 对比：有 transform 时导航吸顶会整体右移；无 transform 时应正常贴在灰区顶部。
+
+<CodePlayground client:visible title="7.2 · transform 与滚动容器（可切换）" files={stickyDemos.transformToggle} />
+
+常见来源：动画库、`will-change: transform`、对 layout 根节点做 GPU 加速、Modal/Drawer 的 transform 层。
+
+**排查思路**：不要只用「整页包一层 translateZ(0)」自测。应确认 **谁在滚动**、sticky 与 scroll container 之间是否存在 transform/filter，并在 DevTools 里向上查第一个创建 containing block 的祖先。
+
+### 7.3 Flex / Grid：sticky 元素自己被 stretch 拉满
+
+Flex 默认 `align-items: stretch`。失效发生在：**`position: sticky` 就在 flex 子项本身**（例如 `<aside class="sidebar">` 同时是 flex item 且 sticky），子项被拉满整列高度后，没有「在列内滑动」的空间，吸顶会失效。
+
+正确对比：**sticky 直接写在侧栏 flex 子项上**；修复时对**该 sticky 子项**使用 `align-self: flex-start`（或对 flex 容器设 `align-items: flex-start`）。
+
+<CodePlayground client:visible title="7.3 · flex stretch 与 sticky 子项（可切换）" files={stickyDemos.flexToggle} />
+
+若 sticky 必须在嵌套结构里，也可给 **sticky 元素自身**（当它仍是 flex item 时）设 `align-self: flex-start`，或避免 stretch 作用在 sticky 那一层。
+
+### 7.4 其他容易忽略的原因
+
+| 原因 | 说明 |
+| ---- | ---- |
+| 未设置 `top`/`bottom` 等 | 只有 `position: sticky` 不会吸住 |
+| sticky 元素自身或父级高度不够 | 没有剩余滚动距离可以「粘」 |
+| `display: none` → block 切换 | 某些浏览器需要重新触发布局 |
+| 被更高层 `fixed` 盖住 | 其实 sticky 生效了，只是看不见 |
+| 在 iframe / shadow DOM 内 | 滚动容器可能是外层，需要分层理解 |
+| `contain: paint` / `content-visibility` | 可能改变绘制与滚动行为 |
+
+---
+
+## 8. 系统化排查流程
+
+遇到「本地好使、线上一坨」或「某个页面坏、别的页面好」，按这个顺序查：
+
+```text
+1. 确认滚动的是哪一层
+   └─ 是 window？某个 div？还是 iframe 内部？
+
+2. 检查 sticky 三要素
+   └─ position + top/bottom + 足够滚动空间
+
+3. 向上遍历祖先链（重点）
+   ├─ overflow 非 visible？
+   ├─ transform / filter / perspective？
+   ├─ contain / will-change？
+   └─ flex/grid 导致高度被撑满？
+
+4. 看层叠与可见性
+   ├─ z-index / fixed 遮挡
+   └─ opacity: 0 / visibility / clip
+
+5. 对比「最小可复现」
+   └─ 把 sticky 节点移到 body 直下试一次
+      若好了 → 问题在中间某层 layout
+      若仍坏 → 查全局样式或 JS 动态样式
+```
+
+**DevTools 小技巧**：
+
+- 在 Elements 里右键 sticky 节点 → *Scroll into view*，确认它是否仍在文档流中。
+- 用 *3D View*（Chrome）看是否有多层嵌套滚动面。
+- 临时给祖先加 outline，快速定位哪一层在截断。
+
+---
+
+## 9. 小结
+
+| 阶段 | 要点 |
+| ---- | ---- |
+| 入门 | 先分清 sticky 与 fixed：sticky 会随包含块滚出视口 |
+| 典型场景 | 消息头像、区块标题——「块内吸顶、块外松手」 |
+| 布局 | 弄清滚动容器；多 sticky 要算 `top` 堆叠 |
+| 真实项目 | App Shell、局部滚动、Table 是高频场景 |
+| 踩坑 | `overflow`、`transform`、flex stretch 占大多数 |
+| 排查 | 先找滚动层，再向上查祖先，最后做最小复现 |
+
+`position: sticky` 本身并不复杂，复杂的是**它和整个布局上下文绑在一起**。把「滚动发生在哪」和「祖先链上谁创建了新的 containing block」这两件事搞清楚，绝大多数 sticky 问题都能在十分钟内定位。
+
+---
+
+如果你改动了示例代码，欢迎把某个「失效 → 修复」的对比留在评论区，方便以后查阅。

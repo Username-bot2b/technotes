@@ -1,0 +1,48 @@
+---
+import type { InferGetStaticPropsType, GetStaticPaths } from 'astro';
+import { blogCategoryRobots, getStaticPathsBlogCategory } from '~/utils/blog';
+
+import Layout from '~/layouts/PageLayout.astro';
+import BlogList from '~/components/blog/List.astro';
+import Headline from '~/components/blog/Headline.astro';
+import Pagination from '~/components/blog/Pagination.astro';
+import Section from '~/components/ui/Section.astro';
+import { getBlogPermalink } from '~/utils/permalinks';
+
+export const prerender = true;
+
+export const getStaticPaths = (async ({ paginate }) => {
+  return await getStaticPathsBlogCategory({ paginate });
+}) satisfies GetStaticPaths;
+
+type Props = InferGetStaticPropsType<typeof getStaticPaths> & { category: Record<string, string> };
+
+const { page, category } = Astro.props as Props;
+
+const currentPage = page.currentPage ?? 1;
+
+const metadata = {
+  title: `Category '${category.title}'${currentPage > 1 ? ` — Page ${currentPage}` : ''}`,
+  robots: {
+    index: blogCategoryRobots?.index,
+    follow: blogCategoryRobots?.follow,
+  },
+};
+---
+
+<Layout metadata={metadata}>
+  <div class="cl-page">
+    <div class="cl-container">
+      <Section title={`Category: ${category.title}`} emoji="📁">
+        <Headline subtitle={`Posts in the “${category.title}” category.`}>
+          {category.title}
+        </Headline>
+        <BlogList posts={page.data} />
+        <Pagination prevUrl={page.url.prev} nextUrl={page.url.next} />
+        <p class="mt-3 mb-0">
+          <a href={getBlogPermalink()}>« Back to Blog</a>
+        </p>
+      </Section>
+    </div>
+  </div>
+</Layout>

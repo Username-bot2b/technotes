@@ -1,0 +1,85 @@
+---
+import ToggleMenu from '~/components/common/ToggleMenu.astro';
+import { SITE } from '~/config';
+
+import { trimSlash } from '~/utils/permalinks';
+import type { CallToAction } from '~/types';
+
+interface Link {
+  text?: string;
+  href?: string;
+  ariaLabel?: string;
+  icon?: string;
+  mnemonic?: string;
+}
+
+interface MenuLink extends Link {
+  links?: Array<MenuLink>;
+}
+
+export interface Props {
+  id?: string;
+  links?: Array<MenuLink>;
+  actions?: Array<CallToAction>;
+  isSticky?: boolean;
+  isDark?: boolean;
+  isFullWidth?: boolean;
+  showToggleTheme?: boolean;
+  showRssFeed?: boolean;
+  position?: string;
+}
+
+const { id = 'header', links = [], actions = [] } = Astro.props;
+
+const currentPath = `/${trimSlash(new URL(Astro.url).pathname)}`;
+const siteName = SITE?.name || 'technotes';
+
+const flatLinks = links.flatMap((link) => (link.links?.length ? link.links : [link]));
+---
+
+<header class="cl-header" {...id ? { id } : {}}>
+  <div class="cl-container">
+    <div class="cl-header__top">
+      <a href="/" class="cl-site-name">{siteName}</a>
+      <div class="flex items-center gap-2">
+        {
+          actions?.length
+            ? actions.map(({ text, href, target }) => (
+                <a
+                  class="cl-link hidden sm:inline"
+                  href={href}
+                  {...(target ? { target, rel: 'noopener noreferrer' } : {})}
+                >
+                  {text}
+                </a>
+              ))
+            : null
+        }
+        <div class="md:hidden">
+          <ToggleMenu />
+        </div>
+      </div>
+    </div>
+
+    <nav class="hidden md:block" aria-label="Main navigation">
+      <ul class="cl-nav__list flex-col md:flex-row items-start md:items-center">
+        {
+          flatLinks.map((link, index) => (
+            <li class="flex items-center">
+              {index > 0 && <span class="cl-nav-sep hidden md:inline">|</span>}
+              <a
+                class:list={['cl-nav__link', { 'is-current': link.href === currentPath }]}
+                href={link.href}
+                aria-label={link.ariaLabel}
+              >
+                {link.text}
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </nav>
+
+    <hr />
+  </div>
+</header>

@@ -1,0 +1,13 @@
+---
+export interface Props {
+  label?: string;
+  class?: string;
+}
+
+const { label = 'Menu', class: className = 'cl-menu-toggle group' } = Astro.props;
+---
+
+<button type="button" class={className} aria-label={label} data-aw-toggle-menu>
+  <span class="group-[.expanded]:hidden">menu</span>
+  <span class="hidden group-[.expanded]:inline">close</span>
+</button>

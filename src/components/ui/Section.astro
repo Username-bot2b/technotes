@@ -1,0 +1,21 @@
+---
+export interface Props {
+  title: string;
+  emoji?: string;
+  class?: string;
+  id?: string;
+}
+
+const { title, emoji, class: className = '', id } = Astro.props;
+---
+
+<section class:list={['cl-section', className]} id={id}>
+  <h2 class="cl-section__title">
+    {emoji && <span class="cl-section__emoji" aria-hidden="true">{emoji}</span>}
+    {title}
+  </h2>
+  <hr class="cl-section__rule" />
+  <div class="cl-section__body">
+    <slot />
+  </div>
+</section>
