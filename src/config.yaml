@@ -71,11 +71,11 @@ apps:
     # 1) 在 GitHub 开启 Discussions  2) 安装 https://github.com/apps/giscus
     # 3) 运行: npm run giscus:setup -- your-user/technotes
     comments:
-      enabled: false
-      repo: ''
-      repoId: ''
+      enabled: true
+      repo: 'Username-bot2b/technotes'
+      repoId: 'R_kgDOUySlqQ'
       category: 'Announcements'
-      categoryId: ''
+      categoryId: 'DIC_kwDOUySlqc4DGsum '
       mapping: pathname
       strict: false
       reactionsEnabled: true

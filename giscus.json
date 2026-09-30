@@ -1,0 +1,11 @@
+{
+    "origins": [
+      "http://localhost:4321",
+      "https://technotes-sand.vercel.app"
+    ],
+    "originsRegex": [
+      "http://localhost:[0-9]+",
+      "https://technotes-sand[a-z0-9-]*\\.vercel\\.app"
+    ],
+    "defaultCommentOrder": "oldest"
+  }
