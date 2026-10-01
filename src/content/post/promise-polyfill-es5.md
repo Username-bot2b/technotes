@@ -16,6 +16,33 @@ author: technotes
 
 目标不是 100% 复刻浏览器内置实现，而是实现一个 **通过 Promises/A+ 核心测试思路** 的 subset：构造、`then`、链式传递、thenable 展开、`Promise.resolve` / `Promise.reject`。异步调度用 `setTimeout(fn, 0)`（宏任务），与原生微任务有差异，文末会说明。
 
+## Promise 执行流程（直觉版）
+
+`new Promise(function (resolve, reject) { ... })` 里传入的函数叫 **executor**。它本身也接收两个函数参数——这两个参数是 Promise **在内部定义好** 的 `resolve` / `reject`，并在 **构造过程中同步** 调用 executor 时传进去。也就是说：**一 `new`，executor 就会马上跑**，而不是等谁去手动触发。
+
+实例从创建起就有两个队列（本实现里叫 `onFulfilledCallbacks`、`onRejectedCallbacks`）。**刚初始化完时队列是空的**；之后 `resolve` / `reject` 被调用时会改状态，并 **异步** 遍历 **对应** 的那条队列（成功只跑 fulfilled 队列，失败只跑 rejected 队列），把里面登记的函数逐个执行。
+
+> 容易写混的一点：队列里放的不是你手写传给 `then` 的 `onFulfilled` / `onRejected`，而是 `then` 内部包装好的 **`runFulfilled` / `runRejected`**。
+
+**队列什么时候有内容？** 靠 `then(onFulfilled, onRejected)`。为了链式调用，每次 `then` 都会 **返回一个新的 Promise**，下文称 **`promise2`**；被挂 `then` 的那个实例叫 **父 Promise**（或者说「初始 Promise」）。
+
+`then` 里会用 `new MyPromise(...)` 创建 `promise2`。`promise2` 的 executor **同样会立即执行**。在这个 executor 里会先造两个函数：
+
+- **`runFulfilled`**：在父 Promise 成功时执行，内部调用你的 `onFulfilled`；
+- **`runRejected`**：在父 Promise 失败时执行，内部调用你的 `onRejected`。
+
+`promise2` 的 executor 跑起来时，看 **父 Promise** 当前状态：
+
+| 父 Promise 状态 | 行为 |
+|-----------------|------|
+| `fulfilled` | **异步** 调度 `runFulfilled`（规范要求不能同步跑 then 回调） |
+| `rejected` | 异步调度 `runRejected` |
+| `pending` | 把 `runFulfilled` 推进父实例的 fulfilled 队列，把 `runRejected` 推进 rejected 队列；等父实例落定后，只会执行其中一侧队列 |
+
+最后，`runFulfilled` / `runRejected` 都会走到核心函数 **`resolvePromise`**：把 then 回调的返回值（以及穿透、thenable 等情形）转成 **`promise2` 的最终结果**，从而 **落定（settle）** `promise2`。
+
+下面分步写代码时，会按这个流程在关键位置加注释，方便和实现对照。
+
 ---
 
 ## 1. 要先统一的三个概念
@@ -77,16 +104,17 @@ function MyPromise(executor) {
   self.status = 'pending';
   self.value = undefined;
   self.reason = undefined;
-  // pending 时注册的 then 回调，落定后统一异步触发
+  // 构造时即创建双队列，初始为空；then 填入的是 runFulfilled / runRejected
   self.onFulfilledCallbacks = [];
   self.onRejectedCallbacks = [];
 
+  // 下面 resolve/reject 由 Promise 内部生成，传给 executor 使用
   function resolve(value) {
     if (self.status !== 'pending') return; // 状态只能变更一次
     self.status = 'fulfilled';
     self.value = value;
     self.onFulfilledCallbacks.forEach(function (fn) {
-      asyncRun(fn); // 即使已 fulfilled，then 回调也须异步执行
+      asyncRun(fn); // 遍历 fulfilled 队列，异步执行（含 pending 时登记的 run*）
     });
   }
 
@@ -95,12 +123,12 @@ function MyPromise(executor) {
     self.status = 'rejected';
     self.reason = reason;
     self.onRejectedCallbacks.forEach(function (fn) {
-      asyncRun(fn);
+      asyncRun(fn); // 遍历 rejected 队列
     });
   }
 
   try {
-    executor(resolve, reject);
+    executor(resolve, reject); // executor 同步执行
   } catch (e) {
     reject(e); // executor 同步抛错等价于 reject
   }
@@ -124,19 +152,20 @@ function asyncRun(fn) {
 
 ```javascript
 MyPromise.prototype.then = function (onFulfilled, onRejected) {
-  var self = this;
-  var promise2; // 先声明，供 resolvePromise 做 promise2 === x 检测
+  var self = this; // 父 Promise（被挂 then 的实例）
+  var promise2; // then 返回的新 Promise；先声明，供 resolvePromise 做 promise2 === x 检测
 
-  // then 的 resolve/reject 只落定「本段 then 返回的新 Promise」
+  // 创建 promise2；其 executor 会立即执行（与 new Promise 相同）
   promise2 = new MyPromise(function (resolve, reject) {
+    // 包装用户 onFulfilled，真正进队列 / 被 asyncRun 的是 runFulfilled
     function runFulfilled() {
       try {
         if (typeof onFulfilled !== 'function') {
           resolvePromise(promise2, self.value, resolve, reject); // 成功链值穿透
           return;
         }
-        var x = onFulfilled(self.value);
-        resolvePromise(promise2, x, resolve, reject); // 用 x 决议 promise2
+        var x = onFulfilled(self.value); // return new MyPromise(...) 时 x 走 resolvePromise 的 instanceof 分支
+        resolvePromise(promise2, x, resolve, reject);
       } catch (e) {
         reject(e);
       }
@@ -155,12 +184,12 @@ MyPromise.prototype.then = function (onFulfilled, onRejected) {
       }
     }
 
+    // 根据父 Promise 状态：已落定则异步跑 run*，pending 则写入父实例的双队列
     if (self.status === 'fulfilled') {
       asyncRun(runFulfilled);
     } else if (self.status === 'rejected') {
       asyncRun(runRejected);
     } else {
-      // 父 Promise 仍 pending：等 resolve/reject 后再跑 run*
       self.onFulfilledCallbacks.push(runFulfilled);
       self.onRejectedCallbacks.push(runRejected);
     }
@@ -169,33 +198,37 @@ MyPromise.prototype.then = function (onFulfilled, onRejected) {
   return promise2;
 };
 
-// Promises/A+ 2.3：把 then 回调的返回值 x 变成 promise2 的结果
+// 核心：把 then 回调产物 x 转成 promise2 的 fulfilled/rejected 结果
 function resolvePromise(promise2, x, resolve, reject) {
   if (promise2 === x) {
     reject(new TypeError('Chaining cycle detected for promise'));
     return;
   }
+  // 自家 MyPromise：行为可控，可直接 x.then(resolve, reject) 把 x 的结果交给 promise2
   if (x instanceof MyPromise) {
     x.then(resolve, reject);
     return;
   }
+  // 未知 thenable（duck typing）：不能写 x.then(resolve, reject)，须按 Promises/A+ 2.3
   if (x !== null && (typeof x === 'object' || typeof x === 'function')) {
     var then;
-    var called = false; // thenable 只允许 resolve/reject 一次
+    var called = false; // 防 thenable 同步多次调 onFulfilled/onRejected（此时 promise2 可能仍 pending）
     try {
-      then = x.then; // 读 then 可能抛错，须单独 try
+      then = x.then; // 读 then 可能 throw，须单独 try；且只读一次
     } catch (e) {
       reject(e);
       return;
     }
     if (typeof then === 'function') {
       try {
+        // then.call(x, …)：保证 this 指向 x；成功时 y 须再进 resolvePromise（y 可能仍是 thenable）
+        // 不直接传 resolve：须 called 包装 + 递归 assimilation，与 A+ 测试一致
         then.call(
           x,
           function (y) {
             if (called) return;
             called = true;
-            resolvePromise(promise2, y, resolve, reject); // 递归 assimilation
+            resolvePromise(promise2, y, resolve, reject);
           },
           function (r) {
             if (called) return;
@@ -206,7 +239,7 @@ function resolvePromise(promise2, x, resolve, reject) {
       } catch (e) {
         if (called) return;
         called = true;
-        reject(e);
+        reject(e); // 调用 then 本身同步 throw
       }
       return;
     }
@@ -220,7 +253,7 @@ function resolvePromise(promise2, x, resolve, reject) {
 - **`promise2` 必须先声明再传入 `new MyPromise` 的 executor**，否则 `resolvePromise` 里无法做 `promise2 === x` 的循环检测。
 - **`onFulfilled` / `onRejected` 不是函数**：成功链用 `resolvePromise` 透传 `value`；失败链直接 `reject(reason)` 透传错误（Promises/A+ 2.2.7）。
 - **`resolve` / `reject` 参数**：来自子 Promise 构造函数的决议函数，专门用来落定 **`then` 返回的那个新 Promise**。
-- **`called` 标志**：防止 thenable 多次调用 resolve/reject。
+- **thenable 分支**：为何不 `x.then(resolve, reject)`、为何要 `call` 与包装回调，见 `resolvePromise` 内注释。
 
 ---
 
@@ -257,7 +290,7 @@ MyPromise.reject = function (reason) {
     self.onFulfilledCallbacks = [];
     self.onRejectedCallbacks = [];
 
-    // 落定「当前实例 self」，与 then 里的 resolvePromise 分工不同
+    // 落定「当前实例 self」；与 then 里 settle promise2 的 resolvePromise 分工不同
     function resolve(value) {
       if (self.status !== 'pending') return;
       if (value === self) {
@@ -303,7 +336,7 @@ MyPromise.reject = function (reason) {
       self.status = 'fulfilled';
       self.value = value;
       self.onFulfilledCallbacks.forEach(function (fn) {
-        asyncRun(fn);
+        asyncRun(fn); // resolve 时异步刷 fulfilled 队列（runFulfilled 等）
       });
     }
 
@@ -312,38 +345,39 @@ MyPromise.reject = function (reason) {
       self.status = 'rejected';
       self.reason = reason;
       self.onRejectedCallbacks.forEach(function (fn) {
-        asyncRun(fn);
+        asyncRun(fn); // reject 时异步刷 rejected 队列
       });
     }
 
     try {
-      executor(resolve, reject);
+      executor(resolve, reject); // 用户 executor 同步执行
     } catch (e) {
       reject(e);
     }
   }
 
-  // then 链：用回调返回值 x 决议 promise2（子 Promise）
+  // 把 then 回调返回值 x settle 成 promise2 的结果（含 thenable 展开）
   function resolvePromise(promise2, x, resolve, reject) {
     if (promise2 === x) {
       reject(new TypeError('Chaining cycle detected for promise'));
       return;
     }
     if (x instanceof MyPromise) {
-      x.then(resolve, reject);
+      x.then(resolve, reject); // then 里 return new MyPromise(...) 走此分支
       return;
     }
     if (x !== null && (typeof x === 'object' || typeof x === 'function')) {
       var then;
-      var called = false;
+      var called = false; // 防 thenable 同步多次调回调（promise2 可能仍 pending）
       try {
-        then = x.then;
+        then = x.then; // 只读一次；getter 可能 throw
       } catch (e) {
         reject(e);
         return;
       }
       if (typeof then === 'function') {
         try {
+          // 勿 x.then(resolve,reject)：须 call(x) 绑 this；y 再 resolvePromise；called 防双调
           then.call(
             x,
             function (y) {
@@ -360,7 +394,7 @@ MyPromise.reject = function (reason) {
         } catch (e) {
           if (called) return;
           called = true;
-          reject(e);
+          reject(e); // then 调用本身同步 throw
         }
         return;
       }
@@ -369,8 +403,8 @@ MyPromise.reject = function (reason) {
   }
 
   MyPromise.prototype.then = function (onFulfilled, onRejected) {
-    var self = this;
-    var promise2; // 先声明，供循环引用检测
+    var self = this; // 父 Promise
+    var promise2;
 
     promise2 = new MyPromise(function (resolve, reject) {
       function runFulfilled() {
@@ -379,7 +413,7 @@ MyPromise.reject = function (reason) {
             resolvePromise(promise2, self.value, resolve, reject);
             return;
           }
-          var x = onFulfilled(self.value);
+          var x = onFulfilled(self.value); // 若 return new MyPromise(...) → resolvePromise 的 instanceof 分支
           resolvePromise(promise2, x, resolve, reject);
         } catch (e) {
           reject(e);
@@ -407,7 +441,7 @@ MyPromise.reject = function (reason) {
         self.onFulfilledCallbacks.push(runFulfilled);
         self.onRejectedCallbacks.push(runRejected);
       }
-    });
+    }); // promise2 的 executor 同步结束；run* 在 asyncRun 或父 resolve/reject 后执行
 
     return promise2;
   };
@@ -472,6 +506,30 @@ new MyPromise(function () {
 }).then(null, function (e) {
   console.log('5:', e.message);
 });
+
+// 6. then 回调 return new MyPromise（展开子 Promise，而非把实例当作普通 value）
+MyPromise.resolve(2)
+  .then(function (v) {
+    return new MyPromise(function (resolve) {
+      resolve(v * 5);
+    });
+  })
+  .then(function (v) {
+    console.log('6:', v); // 10
+  });
+
+// 6b. 子 Promise 异步落定（仍须等内层 resolve 后再 settle 外层链）
+MyPromise.resolve(1)
+  .then(function () {
+    return new MyPromise(function (resolve) {
+      setTimeout(function () {
+        resolve(99);
+      }, 10);
+    });
+  })
+  .then(function (v) {
+    console.log('6b:', v); // 99
+  });
 ```
 
 ---
