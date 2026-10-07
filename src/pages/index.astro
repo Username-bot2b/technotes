@@ -1,11 +1,11 @@
 ---
-import Layout from '~/layouts/PageLayout.astro';
-import Section from '~/components/ui/Section.astro';
-import BlogLatestPosts from '~/components/widgets/BlogLatestPosts.astro';
-import { getPermalink, getBlogPermalink } from '~/utils/permalinks';
+import Layout from "~/layouts/PageLayout.astro";
+import Section from "~/components/ui/Section.astro";
+import BlogLatestPosts from "~/components/widgets/BlogLatestPosts.astro";
+import { getPermalink, getBlogPermalink } from "~/utils/permalinks";
 
 const metadata = {
-  title: 'Home',
+  title: "Home",
   ignoreTitleTemplate: true,
 };
 ---
@@ -16,14 +16,15 @@ const metadata = {
       <Section title="Home" emoji="🏠">
         <h1 class="cl-h1">technotes</h1>
         <p class="cl-lede">
-          编程学习笔记与技术文章。站点基于 Astro，UI 使用 PaperPlain 主题。<br/>代码多用 TypeScript 编写，所以推荐安装包子(bun)来直接运行TS代码。
+          编程学习笔记与技术文章。站点基于 Astro，UI 使用 PaperPlain 主题。<br
+          />代码多用 TypeScript 编写，所以推荐安装包子(bun)来直接运行TS代码。
         </p>
         <p class="m-0">
           <a href={getBlogPermalink()}>Read the blog</a>
           <span class="cl-nav-sep">|</span>
-          <a href={getPermalink('/about')}>About me</a>
+          <a href={getPermalink("/about")}>About me</a>
           <span class="cl-nav-sep">|</span>
-          <a href={getPermalink('/contact')}>Contact</a>
+          <a href={getPermalink("/contact")}>Contact</a>
         </p>
       </Section>
 
