@@ -28,16 +28,10 @@ export class RequestPool {
   constructor(limit: number) {
     this.limit = limit;
   }
+  /** 返回 Promise，可以 await 等待任务结果 */
   add<T>(task: () => Promise<T>): Promise<T> {
     return new Promise<T>((resolve, reject) => {
-      this.queue.push(async () => {
-        try {
-          const result = await task();
-          resolve(result);
-        } catch (error) {
-          reject(error);
-        }
-      });
+      this.queue.push(() => task().then(resolve).catch(reject));
       this.run();
     });
   }
